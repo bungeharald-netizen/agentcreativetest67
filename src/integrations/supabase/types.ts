@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          action_plan: Json
+          agent_conversation: Json | null
+          challenges: string | null
+          company_info: Json
+          company_name: string
+          company_type: string | null
+          created_at: string
+          current_processes: string | null
+          goals: string | null
+          id: string
+          industry: string
+          roi_estimate: Json
+          status: string | null
+          suggestions: Json
+          suggestions_count: number | null
+          total_investment: number | null
+          total_roi_percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          action_plan?: Json
+          agent_conversation?: Json | null
+          challenges?: string | null
+          company_info?: Json
+          company_name: string
+          company_type?: string | null
+          created_at?: string
+          current_processes?: string | null
+          goals?: string | null
+          id?: string
+          industry: string
+          roi_estimate?: Json
+          status?: string | null
+          suggestions?: Json
+          suggestions_count?: number | null
+          total_investment?: number | null
+          total_roi_percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          action_plan?: Json
+          agent_conversation?: Json | null
+          challenges?: string | null
+          company_info?: Json
+          company_name?: string
+          company_type?: string | null
+          created_at?: string
+          current_processes?: string | null
+          goals?: string | null
+          id?: string
+          industry?: string
+          roi_estimate?: Json
+          status?: string | null
+          suggestions?: Json
+          suggestions_count?: number | null
+          total_investment?: number | null
+          total_roi_percentage?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
