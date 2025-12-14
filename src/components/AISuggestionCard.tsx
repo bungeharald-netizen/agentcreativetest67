@@ -8,7 +8,7 @@ interface AISuggestionCardProps {
   index: number;
 }
 
-const categoryConfig = {
+const categoryConfig: Record<string, { icon: typeof Sparkles; label: string; color: string }> = {
   generative: {
     icon: Sparkles,
     label: "Generativ AI",
@@ -31,23 +31,33 @@ const categoryConfig = {
   },
 };
 
-const priorityConfig = {
+const defaultCategory = {
+  icon: Sparkles,
+  label: "AI-lösning",
+  color: "bg-primary/20 text-primary border-primary/30",
+};
+
+const priorityConfig: Record<string, { label: string; color: string }> = {
   "quick-win": { label: "Quick Win", color: "bg-success/20 text-success border-success/30" },
   strategic: { label: "Strategisk", color: "bg-primary/20 text-primary border-primary/30" },
   "long-term": { label: "Långsiktig", color: "bg-muted text-muted-foreground border-border" },
 };
 
-const complexityConfig = {
+const defaultPriority = { label: "Strategisk", color: "bg-primary/20 text-primary border-primary/30" };
+
+const complexityConfig: Record<string, { label: string; color: string }> = {
   low: { label: "Låg", color: "text-success" },
   medium: { label: "Medium", color: "text-warning" },
   high: { label: "Hög", color: "text-destructive" },
 };
 
+const defaultComplexity = { label: "Medium", color: "text-warning" };
+
 export function AISuggestionCard({ suggestion, index }: AISuggestionCardProps) {
-  const category = categoryConfig[suggestion.category];
+  const category = categoryConfig[suggestion.category] || defaultCategory;
   const CategoryIcon = category.icon;
-  const priority = priorityConfig[suggestion.priority];
-  const complexity = complexityConfig[suggestion.implementationComplexity];
+  const priority = priorityConfig[suggestion.priority] || defaultPriority;
+  const complexity = complexityConfig[suggestion.implementationComplexity] || defaultComplexity;
 
   return (
     <div
