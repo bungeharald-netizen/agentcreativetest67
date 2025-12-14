@@ -105,22 +105,24 @@ VIKTIGT:
 - Prioritera "quick wins" och strategiska initiativ
 - Skriv på svenska
 
-Returnera exakt 4-5 AI-förslag i JSON-format:
+Returnera exakt 4-5 AI-förslag i JSON-format.
+KRITISKT: "percentage" måste vara ett ENSKILT heltal (t.ex. 45), INTE ett intervall (t.ex. 40-80).
+
 {
   "suggestions": [
     {
       "id": "unik-id",
-      "category": "generative" | "agentic" | "automation" | "analytics",
+      "category": "generative",
       "title": "Titel på lösning",
       "description": "Detaljerad beskrivning",
       "useCases": ["användning1", "användning2", "användning3"],
       "estimatedROI": {
-        "percentage": 30-80,
-        "timeframe": "6-24 månader",
-        "confidence": "low" | "medium" | "high"
+        "percentage": 45,
+        "timeframe": "12 månader",
+        "confidence": "medium"
       },
-      "implementationComplexity": "low" | "medium" | "high",
-      "priority": "quick-win" | "strategic" | "long-term"
+      "implementationComplexity": "medium",
+      "priority": "strategic"
     }
   ]
 }`;
@@ -261,16 +263,23 @@ ${actionPlan}`;
   return { role: "Financial Analyst Agent", content: response };
 }
 
-// Parse JSON from AI response (handles markdown code blocks)
+// Parse JSON from AI response (handles markdown code blocks and fixes common issues)
 function parseAIJson(response: string): any {
   // Remove markdown code blocks if present
   let cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  
+  // Fix common AI JSON issues:
+  // 1. Replace number ranges like "40-90" with the first number "40"
+  cleaned = cleaned.replace(/"percentage":\s*(\d+)-\d+/g, '"percentage": $1');
+  
+  // 2. Replace ranges in other numeric fields
+  cleaned = cleaned.replace(/:\s*(\d+)-(\d+)([,\n\r\s}])/g, ': $1$3');
   
   try {
     return JSON.parse(cleaned);
   } catch (e) {
     console.error("Failed to parse JSON:", e);
-    console.log("Raw response:", response);
+    console.log("Cleaned response:", cleaned.substring(0, 500));
     throw new Error("Failed to parse AI response as JSON");
   }
 }
