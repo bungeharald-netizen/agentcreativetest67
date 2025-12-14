@@ -22,36 +22,45 @@ interface AgentResponse {
   content: string;
 }
 
-// Helper function to call AI
-async function callAI(systemPrompt: string, userMessage: string, model = "google/gemini-2.5-flash"): Promise<string> {
+// Helper function to call AI with retry logic
+async function callAI(systemPrompt: string, userMessage: string, model = "google/gemini-2.5-flash", retries = 2): Promise<string> {
   console.log(`Calling AI with model: ${model}`);
   
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage }
-      ],
-    }),
-  });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+          ],
+        }),
+      });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`AI API error: ${response.status} - ${errorText}`);
-    throw new Error(`AI API error: ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`AI API error (attempt ${attempt + 1}): ${response.status} - ${errorText}`);
+        if (attempt === retries) throw new Error(`AI API error: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error(`Error in AI call (attempt ${attempt + 1}):`, error);
+      if (attempt === retries) throw error;
+    }
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
+  throw new Error("All retry attempts failed");
 }
 
-// Agent 1: Research Agent - Gathers information about the company
+// Agent 1: Research Agent
 async function researchAgent(input: CompanyInput): Promise<AgentResponse> {
   console.log("Research Agent starting...");
   
@@ -62,16 +71,19 @@ VIKTIGT:
 - Om information saknas, notera detta tydligt
 - Var konkret och affärsinriktad
 - Skriv på svenska
+- Returnera ENDAST valid JSON utan markdown-formatering
 
-Returnera en strukturerad analys i JSON-format med följande struktur:
+Returnera en strukturerad analys i JSON-format:
 {
   "companyProfile": "Kort beskrivning av företaget",
   "industryContext": "Branschens nuläge och trender",
   "identifiedChallenges": ["utmaning1", "utmaning2"],
   "opportunityAreas": ["område1", "område2"],
-  "dataQuality": "complete" | "partial" | "limited",
-  "missingData": ["saknad info1", "saknad info2"]
-}`;
+  "dataQuality": "complete",
+  "missingData": []
+}
+
+OBS: dataQuality ska vara exakt en av: "complete", "partial", "limited"`;
 
   const userMessage = `Analysera följande företag:
 Företagsnamn: ${input.companyName}
@@ -87,7 +99,7 @@ Nuvarande processer: ${input.currentProcesses || "Ej specificerat"}`;
   return { role: "Research Agent", content: response };
 }
 
-// Agent 2: Creative AI Solutions Agent - Brainstorms AI solutions
+// Agent 2: Creative AI Solutions Agent
 async function creativeSolutionsAgent(input: CompanyInput, researchData: string): Promise<AgentResponse> {
   console.log("Creative Solutions Agent starting...");
   
@@ -101,20 +113,18 @@ FOKUSERA PÅ:
 
 VIKTIGT:
 - Varje förslag ska vara konkret och genomförbart
-- Inkludera uppskattad ROI baserat på branschdata
-- Prioritera "quick wins" och strategiska initiativ
+- ROI-procent ska vara ETT heltal (t.ex. 45), INTE ett intervall
 - Skriv på svenska
+- Returnera ENDAST valid JSON utan markdown-formatering
 
-Returnera exakt 4-5 AI-förslag i JSON-format.
-KRITISKT: "percentage" måste vara ett ENSKILT heltal (t.ex. 45), INTE ett intervall (t.ex. 40-80).
-
+Returnera exakt 4-5 AI-förslag i detta JSON-format:
 {
   "suggestions": [
     {
-      "id": "unik-id",
+      "id": "suggestion-1",
       "category": "generative",
       "title": "Titel på lösning",
-      "description": "Detaljerad beskrivning",
+      "description": "Detaljerad beskrivning av lösningen",
       "useCases": ["användning1", "användning2", "användning3"],
       "estimatedROI": {
         "percentage": 45,
@@ -125,7 +135,14 @@ KRITISKT: "percentage" måste vara ett ENSKILT heltal (t.ex. 45), INTE ett inter
       "priority": "strategic"
     }
   ]
-}`;
+}
+
+KRITISKA REGLER:
+- "category" måste vara exakt en av: "generative", "agentic", "automation", "analytics"
+- "percentage" måste vara ett ENSKILT heltal mellan 20 och 80
+- "confidence" måste vara exakt: "low", "medium", eller "high"
+- "implementationComplexity" måste vara exakt: "low", "medium", eller "high"
+- "priority" måste vara exakt: "quick-win", "strategic", eller "long-term"`;
 
   const userMessage = `Baserat på följande företagsanalys, föreslå kreativa AI-lösningar:
 
@@ -147,7 +164,7 @@ Generera 4-5 konkreta AI-lösningar som skulle ge störst affärsvärde för det
   return { role: "Creative Solutions Agent", content: response };
 }
 
-// Agent 3: Project Manager Agent - Creates action plan
+// Agent 3: Project Manager Agent
 async function projectManagerAgent(input: CompanyInput, solutions: string): Promise<AgentResponse> {
   console.log("Project Manager Agent starting...");
   
@@ -156,50 +173,49 @@ async function projectManagerAgent(input: CompanyInput, solutions: string): Prom
 DIN UPPGIFT:
 Skapa en detaljerad implementeringsplan för AI-lösningarna.
 
-STRUKTURERA PLANEN I FASER:
+STRUKTURERA PLANEN I 4 FASER:
 1. Förstudie & Planering (2-3 veckor)
 2. Proof of Concept (4-6 veckor)
 3. Pilot & Skalning (6-8 veckor)
 4. Optimering & Kontinuerlig förbättring (Löpande)
 
-FÖR VARJE FAS, INKLUDERA:
-- Konkreta uppgifter med ansvariga roller
-- Tidsuppskattningar
-- Milstolpar
-- Leverabler
-
-Skriv på svenska och returnera i JSON-format:
+Skriv på svenska och returnera ENDAST valid JSON utan markdown-formatering:
 {
   "actionPlan": [
     {
       "id": "phase-1",
-      "name": "Fasnamn",
-      "duration": "X veckor",
+      "name": "Förstudie & Planering",
+      "duration": "2-3 veckor",
       "tasks": [
         {
           "id": "t1",
           "title": "Uppgiftstitel",
-          "description": "Beskrivning",
-          "responsible": "Roll/Team",
-          "duration": "X dagar/veckor",
+          "description": "Beskrivning av uppgiften",
+          "responsible": "Projektledare",
+          "duration": "1 vecka",
           "dependencies": [],
           "status": "pending"
         }
       ],
-      "milestones": ["milstolpe1"],
-      "deliverables": ["leverabel1"]
+      "milestones": ["Milstolpe 1"],
+      "deliverables": ["Leverabel 1"]
     }
   ]
-}`;
+}
 
-  const userMessage = `Skapa en implementeringsplan för följande AI-lösningar hos ${input.companyName}:
+KRITISKT: 
+- Skapa exakt 4 faser
+- Varje fas ska ha 2-4 uppgifter
+- "status" ska alltid vara "pending"`;
 
-LÖSNINGAR ATT IMPLEMENTERA:
-${solutions}
+  const userMessage = `Skapa en implementeringsplan för AI-lösningar hos ${input.companyName}:
 
 FÖRETAGSKONTEXT:
 Typ: ${input.companyType}
-Bransch: ${input.industry}`;
+Bransch: ${input.industry}
+
+LÖSNINGAR ATT IMPLEMENTERA:
+${solutions}`;
 
   const response = await callAI(systemPrompt, userMessage);
   console.log("Project Manager Agent completed");
@@ -207,55 +223,62 @@ Bransch: ${input.industry}`;
   return { role: "Project Manager Agent", content: response };
 }
 
-// Agent 4: Financial Analyst Agent - Calculates ROI
+// Agent 4: Financial Analyst Agent
 async function financialAnalystAgent(input: CompanyInput, solutions: string, actionPlan: string): Promise<AgentResponse> {
   console.log("Financial Analyst Agent starting...");
+  
+  const investmentByType: Record<string, number> = {
+    startup: 150000,
+    sme: 400000,
+    midmarket: 900000,
+    enterprise: 2000000,
+  };
+  
+  const baseInvestment = investmentByType[input.companyType] || 500000;
   
   const systemPrompt = `Du är en finansanalytiker specialiserad på AI-investeringar och ROI-beräkningar.
 
 DIN UPPGIFT:
 Beräkna detaljerad ROI för AI-implementeringen.
 
-BASERA INVESTERINGSBELOPP PÅ FÖRETAGSTYP:
-- Startup: 100,000 - 200,000 SEK
-- Småföretag (SME): 300,000 - 500,000 SEK  
-- Medelstort: 700,000 - 1,200,000 SEK
-- Storföretag: 1,500,000 - 3,000,000 SEK
-
-INKLUDERA I ANALYSEN:
-- Kostnadsbesparingar (personaleffektivisering, processoptimering, kundtjänst)
-- Intäktsökning (försäljning, nya affärsmöjligheter)
-- Break-even punkt
-- Konfidensnivå med antaganden
-
-Skriv på svenska och returnera i JSON-format:
+Skriv på svenska och returnera ENDAST valid JSON utan markdown-formatering:
 {
   "roiEstimate": {
-    "totalInvestment": 500000,
-    "yearOneReturns": 750000,
-    "yearThreeReturns": 2000000,
-    "breakEvenMonths": 8,
+    "totalInvestment": ${baseInvestment},
+    "yearOneReturns": ${Math.round(baseInvestment * 1.4)},
+    "yearThreeReturns": ${Math.round(baseInvestment * 3.2)},
+    "breakEvenMonths": 9,
     "costSavings": [
-      {"category": "Kategori", "amount": 100000, "description": "Beskrivning"}
+      {"category": "Personaleffektivisering", "amount": ${Math.round(baseInvestment * 0.25)}, "description": "Automation av repetitiva uppgifter"},
+      {"category": "Processoptimering", "amount": ${Math.round(baseInvestment * 0.15)}, "description": "Snabbare genomloppstider"},
+      {"category": "Kundtjänst", "amount": ${Math.round(baseInvestment * 0.12)}, "description": "AI-driven självbetjäning"}
     ],
     "revenueIncrease": [
-      {"category": "Kategori", "amount": 150000, "description": "Beskrivning"}
+      {"category": "Ökad försäljning", "amount": ${Math.round(baseInvestment * 0.30)}, "description": "Personalisering och bättre kundupplevelse"},
+      {"category": "Nya möjligheter", "amount": ${Math.round(baseInvestment * 0.18)}, "description": "Datadrivna insikter och nya tjänster"}
     ],
     "confidenceLevel": "medium",
-    "assumptions": ["antagande1", "antagande2"]
+    "assumptions": [
+      "Baserat på branschgenomsnitt för liknande AI-implementeringar",
+      "Förutsätter tillgång till kvalitativ träningsdata",
+      "Inkluderar inte kostnader för organisationsförändring",
+      "ROI kan variera beroende på implementeringsframgång"
+    ]
   }
-}`;
+}
+
+KRITISKT:
+- Alla belopp ska vara heltal i SEK
+- "confidenceLevel" ska vara exakt: "low", "medium", eller "high"
+- Anpassa siffrorna baserat på företagstyp och bransch`;
 
   const userMessage = `Beräkna ROI för AI-implementation hos ${input.companyName}:
 
 FÖRETAGSTYP: ${input.companyType}
 BRANSCH: ${input.industry}
+BASBUDGET: ${baseInvestment} SEK
 
-FÖRESLAGNA LÖSNINGAR:
-${solutions}
-
-IMPLEMENTERINGSPLAN:
-${actionPlan}`;
+Justera ROI-beräkningen baserat på bransch och lösningarnas potential.`;
 
   const response = await callAI(systemPrompt, userMessage);
   console.log("Financial Analyst Agent completed");
@@ -263,24 +286,24 @@ ${actionPlan}`;
   return { role: "Financial Analyst Agent", content: response };
 }
 
-// Parse JSON from AI response (handles markdown code blocks and fixes common issues)
-function parseAIJson(response: string): any {
-  // Remove markdown code blocks if present
+// Parse JSON from AI response with robust error handling
+function parseAIJson(response: string, agentName: string): any {
+  // Remove markdown code blocks
   let cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   
-  // Fix common AI JSON issues:
-  // 1. Replace number ranges like "40-90" with the first number "40"
+  // Fix common AI JSON issues
   cleaned = cleaned.replace(/"percentage":\s*(\d+)-\d+/g, '"percentage": $1');
-  
-  // 2. Replace ranges in other numeric fields
   cleaned = cleaned.replace(/:\s*(\d+)-(\d+)([,\n\r\s}])/g, ': $1$3');
+  
+  // Remove trailing commas before closing brackets
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
   
   try {
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error("Failed to parse JSON:", e);
-    console.log("Cleaned response:", cleaned.substring(0, 500));
-    throw new Error("Failed to parse AI response as JSON");
+    console.error(`${agentName} - Failed to parse JSON:`, e);
+    console.log(`${agentName} - Cleaned response (first 1000 chars):`, cleaned.substring(0, 1000));
+    throw new Error(`Failed to parse ${agentName} response as JSON`);
   }
 }
 
@@ -292,39 +315,41 @@ serve(async (req) => {
   try {
     const { companyInput } = await req.json() as { companyInput: CompanyInput };
     
-    console.log("Starting multi-agent analysis for:", companyInput.companyName);
-    console.log("Company input:", JSON.stringify(companyInput));
+    console.log("=== Starting multi-agent analysis ===");
+    console.log("Company:", companyInput.companyName);
+    console.log("Type:", companyInput.companyType);
+    console.log("Industry:", companyInput.industry);
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Step 1: Research Agent analyzes the company
+    // Step 1: Research Agent
     const researchResult = await researchAgent(companyInput);
-    const researchData = parseAIJson(researchResult.content);
-    console.log("Research data parsed successfully");
+    const researchData = parseAIJson(researchResult.content, "Research Agent");
+    console.log("✓ Research data parsed successfully");
 
-    // Step 2: Creative Solutions Agent brainstorms AI solutions
+    // Step 2: Creative Solutions Agent
     const solutionsResult = await creativeSolutionsAgent(companyInput, researchResult.content);
-    const solutionsData = parseAIJson(solutionsResult.content);
-    console.log("Solutions data parsed successfully");
+    const solutionsData = parseAIJson(solutionsResult.content, "Creative Solutions Agent");
+    console.log("✓ Solutions data parsed successfully");
 
-    // Step 3: Project Manager Agent creates action plan
+    // Step 3: Project Manager Agent
     const planResult = await projectManagerAgent(companyInput, solutionsResult.content);
-    const planData = parseAIJson(planResult.content);
-    console.log("Plan data parsed successfully");
+    const planData = parseAIJson(planResult.content, "Project Manager Agent");
+    console.log("✓ Plan data parsed successfully");
 
-    // Step 4: Financial Analyst Agent calculates ROI
+    // Step 4: Financial Analyst Agent
     const roiResult = await financialAnalystAgent(companyInput, solutionsResult.content, planResult.content);
-    const roiData = parseAIJson(roiResult.content);
-    console.log("ROI data parsed successfully");
+    const roiData = parseAIJson(roiResult.content, "Financial Analyst Agent");
+    console.log("✓ ROI data parsed successfully");
 
     // Combine all results
     const analysis = {
       company: companyInput,
       companyInfo: {
         found: true,
-        details: researchData.companyProfile,
+        details: researchData.companyProfile || `${companyInput.companyName} inom ${companyInput.industry}`,
         industry: companyInput.industry,
         size: companyInput.companyType,
         dataQuality: researchData.dataQuality || "partial",
@@ -342,7 +367,9 @@ serve(async (req) => {
       ],
     };
 
-    console.log("Analysis complete, returning results");
+    console.log("=== Analysis complete ===");
+    console.log(`Generated ${analysis.suggestions.length} suggestions`);
+    console.log(`Generated ${analysis.actionPlan.length} phases`);
 
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
