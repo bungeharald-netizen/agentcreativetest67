@@ -12,6 +12,7 @@ import { CompanyInput, AnalysisResult } from "@/types/analysis";
 import { analyzeCompany } from "@/lib/api/analysis";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useSaveAnalysis } from "@/hooks/useAnalyses";
 
 export default function Index() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -19,6 +20,7 @@ export default function Index() {
   const [loadingStep, setLoadingStep] = useState("");
   const [activeTab, setActiveTab] = useState<'suggestions' | 'plan' | 'roi' | 'agents'>('suggestions');
   const { toast } = useToast();
+  const saveAnalysis = useSaveAnalysis();
 
   const loadingSteps = [
     "Research Agent analyserar företaget...",
@@ -42,10 +44,21 @@ export default function Index() {
     try {
       const result = await analyzeCompany(data);
       setAnalysis(result);
-      toast({
-        title: "Analys klar!",
-        description: `${result.suggestions.length} AI-lösningar genererade för ${data.companyName}`,
-      });
+      
+      // Save analysis to database
+      try {
+        await saveAnalysis.mutateAsync(result);
+        toast({
+          title: "Analys klar och sparad!",
+          description: `${result.suggestions.length} AI-lösningar genererade för ${data.companyName}`,
+        });
+      } catch (saveError) {
+        console.error("Failed to save analysis:", saveError);
+        toast({
+          title: "Analys klar!",
+          description: `${result.suggestions.length} AI-lösningar genererade för ${data.companyName}`,
+        });
+      }
     } catch (error) {
       console.error("Analysis error:", error);
       toast({

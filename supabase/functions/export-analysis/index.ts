@@ -7,7 +7,7 @@ const corsHeaders = {
 
 interface ExportRequest {
   analysis: any;
-  format: 'excel' | 'pdf';
+  format: 'excel' | 'pdf' | 'pitch';
 }
 
 function generateCSVContent(analysis: any): string {
@@ -230,6 +230,64 @@ function generateTextReport(analysis: any): string {
   return lines.join('\n');
 }
 
+function generatePitchDeck(analysis: any): string {
+  const lines: string[] = [];
+  const roi = analysis.roiEstimate || {};
+  const formatCurrency = (n: number) => new Intl.NumberFormat('sv-SE').format(n);
+  
+  lines.push('╔══════════════════════════════════════════════════════════════╗');
+  lines.push('║           PITCH DECK: AI-IMPLEMENTERING                     ║');
+  lines.push('╚══════════════════════════════════════════════════════════════╝');
+  lines.push('');
+  lines.push(`Kund: ${analysis.company.companyName}`);
+  lines.push(`Bransch: ${analysis.company.industry}`);
+  lines.push(`Datum: ${new Date().toLocaleDateString('sv-SE')}`);
+  lines.push('');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('                    SLIDE 1: UTMANINGEN');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push(analysis.company.challenges || 'Företaget står inför digitala utmaningar');
+  lines.push('');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('                    SLIDE 2: VÅR LÖSNING');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push(`Vi föreslår ${analysis.suggestions?.length || 0} AI-drivna lösningar:`);
+  lines.push('');
+  analysis.suggestions?.slice(0, 3).forEach((s: any, i: number) => {
+    lines.push(`${i + 1}. ${s.title}`);
+    lines.push(`   → ${s.description?.substring(0, 100)}...`);
+    lines.push('');
+  });
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('                    SLIDE 3: ROI & AFFÄRSNYTTA');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push(`💰 Investering:     ${formatCurrency(roi.totalInvestment || 0)} SEK`);
+  lines.push(`📈 Avkastning År 1: ${formatCurrency(roi.yearOneReturns || 0)} SEK`);
+  lines.push(`🎯 Break-even:      ${roi.breakEvenMonths || 0} månader`);
+  lines.push('');
+  const roiPercent = roi.totalInvestment ? Math.round((roi.yearOneReturns / roi.totalInvestment) * 100) : 0;
+  lines.push(`⭐ FÖRVÄNTAD ROI: +${roiPercent}%`);
+  lines.push('');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('                    SLIDE 4: NÄSTA STEG');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('1. Uppstartsmöte och kravspecifikation');
+  lines.push('2. Pilotprojekt med snabba vinster');
+  lines.push('3. Fullskalig implementation');
+  lines.push('4. Kontinuerlig optimering och support');
+  lines.push('');
+  lines.push('════════════════════════════════════════════════════════════════');
+  lines.push('             Kontakta oss för att komma igång!');
+  lines.push('                    CSA AI Advisor');
+  lines.push('════════════════════════════════════════════════════════════════');
+  
+  return lines.join('\n');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -240,31 +298,30 @@ serve(async (req) => {
     
     console.log(`Generating ${format} export for ${analysis.company?.companyName}`);
     
+    let content: string;
+    let filename: string;
+    
     if (format === 'excel') {
-      const csvContent = generateCSVContent(analysis);
-      const encoder = new TextEncoder();
-      const csvBytes = encoder.encode('\ufeff' + csvContent); // Add BOM for Excel
-      
-      return new Response(csvBytes, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="CSA_AI_Analys_${analysis.company?.companyName || 'rapport'}.csv"`,
-        },
-      });
+      content = generateCSVContent(analysis);
+      filename = `CSA_AI_Analys_${analysis.company?.companyName || 'rapport'}.csv`;
+    } else if (format === 'pitch') {
+      content = generatePitchDeck(analysis);
+      filename = `CSA_Pitch_Deck_${analysis.company?.companyName || 'rapport'}.txt`;
     } else {
-      const textContent = generateTextReport(analysis);
-      const encoder = new TextEncoder();
-      const textBytes = encoder.encode(textContent);
-      
-      return new Response(textBytes, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': `attachment; filename="CSA_AI_Analys_${analysis.company?.companyName || 'rapport'}.txt"`,
-        },
-      });
+      content = generateTextReport(analysis);
+      filename = `CSA_AI_Analys_${analysis.company?.companyName || 'rapport'}.txt`;
     }
+    
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(format === 'excel' ? '\ufeff' + content : content);
+    
+    return new Response(bytes, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': format === 'excel' ? 'text/csv; charset=utf-8' : 'text/plain; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
+    });
   } catch (error) {
     console.error('Error in export-analysis function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
