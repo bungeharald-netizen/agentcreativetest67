@@ -60,6 +60,11 @@ export interface ROIEstimate {
   assumptions: string[];
 }
 
+export interface AgentMessage {
+  role: string;
+  content: string;
+}
+
 export interface AnalysisResult {
   company: CompanyInput;
   companyInfo: {
@@ -74,4 +79,5 @@ export interface AnalysisResult {
   actionPlan: ActionPhase[];
   roiEstimate: ROIEstimate;
   generatedAt: Date;
+  agentConversation?: AgentMessage[];
 }

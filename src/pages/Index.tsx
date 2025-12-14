@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Brain, Target, FileSpreadsheet, ArrowRight, Building2 } from "lucide-react";
+import { Sparkles, Brain, Target, FileSpreadsheet, Building2, Bot, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { CompanyInputForm } from "@/components/CompanyInputForm";
 import { DataQualityBanner } from "@/components/DataQualityBanner";
@@ -7,24 +7,57 @@ import { AISuggestionCard } from "@/components/AISuggestionCard";
 import { ActionPlanSection } from "@/components/ActionPlanSection";
 import { ROIDashboard } from "@/components/ROIDashboard";
 import { ExportSection } from "@/components/ExportSection";
+import { AgentConversation } from "@/components/AgentConversation";
 import { CompanyInput, AnalysisResult } from "@/types/analysis";
-import { generateMockAnalysis } from "@/data/mockAnalysis";
+import { analyzeCompany } from "@/lib/api/analysis";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Index() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'suggestions' | 'plan' | 'roi'>('suggestions');
+  const [loadingStep, setLoadingStep] = useState("");
+  const [activeTab, setActiveTab] = useState<'suggestions' | 'plan' | 'roi' | 'agents'>('suggestions');
+  const { toast } = useToast();
+
+  const loadingSteps = [
+    "Research Agent analyserar företaget...",
+    "Creative Solutions Agent brainstormar AI-lösningar...",
+    "Project Manager Agent skapar implementeringsplan...",
+    "Financial Analyst Agent beräknar ROI...",
+    "Sammanställer analys...",
+  ];
 
   const handleSubmit = async (data: CompanyInput) => {
     setIsLoading(true);
+    setLoadingStep(loadingSteps[0]);
     
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    const result = generateMockAnalysis(data);
-    setAnalysis(result);
-    setIsLoading(false);
+    // Animate through loading steps
+    let stepIndex = 0;
+    const stepInterval = setInterval(() => {
+      stepIndex = (stepIndex + 1) % loadingSteps.length;
+      setLoadingStep(loadingSteps[stepIndex]);
+    }, 3000);
+
+    try {
+      const result = await analyzeCompany(data);
+      setAnalysis(result);
+      toast({
+        title: "Analys klar!",
+        description: `${result.suggestions.length} AI-lösningar genererade för ${data.companyName}`,
+      });
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast({
+        variant: "destructive",
+        title: "Fel vid analys",
+        description: error instanceof Error ? error.message : "Kunde inte genomföra analysen. Försök igen.",
+      });
+    } finally {
+      clearInterval(stepInterval);
+      setIsLoading(false);
+      setLoadingStep("");
+    }
   };
 
   const handleReset = () => {
@@ -35,6 +68,27 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="glass rounded-3xl p-8 max-w-md mx-4 text-center animate-scale-in">
+            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-6 animate-pulse-glow">
+              <Bot className="w-8 h-8 text-primary animate-pulse" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              AI-Agenter arbetar
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {loadingStep}
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              <span className="text-sm text-muted-foreground">Detta kan ta 30-60 sekunder</span>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Hero / Input Section */}
       {!analysis ? (
@@ -59,28 +113,29 @@ export default function Index() {
               </h1>
               
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Analysera företag, generera kreativa AI-lösningar och skapa detaljerade 
-                implementeringsplaner med beräknad ROI – allt på några minuter.
+                Våra AI-agenter samarbetar för att analysera företag, generera kreativa 
+                AI-lösningar och skapa detaljerade implementeringsplaner med beräknad ROI.
               </p>
             </div>
 
-            {/* Features */}
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
+            {/* Agent Preview */}
+            <div className="grid md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12">
               {[
-                { icon: Brain, title: "Kreativa AI-förslag", desc: "Generativ, agentisk och automation AI" },
-                { icon: Target, title: "Detaljerad Action Plan", desc: "Projektledning enligt beprövade metoder" },
-                { icon: FileSpreadsheet, title: "ROI & Export", desc: "Estimerad avkastning med Excel-export" },
-              ].map((feature, i) => (
+                { icon: Brain, title: "Research Agent", desc: "Analyserar företaget" },
+                { icon: Sparkles, title: "Solutions Agent", desc: "Föreslår AI-lösningar" },
+                { icon: Target, title: "PM Agent", desc: "Skapar projektplan" },
+                { icon: FileSpreadsheet, title: "Finance Agent", desc: "Beräknar ROI" },
+              ].map((agent, i) => (
                 <div
                   key={i}
-                  className="glass rounded-2xl p-6 text-center animate-slide-up"
+                  className="glass rounded-2xl p-4 text-center animate-slide-up"
                   style={{ animationDelay: `${i * 100}ms` }}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                    <feature.icon className="w-6 h-6 text-primary" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-3">
+                    <agent.icon className="w-5 h-5 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                  <h3 className="font-medium text-foreground text-sm mb-1">{agent.title}</h3>
+                  <p className="text-xs text-muted-foreground">{agent.desc}</p>
                 </div>
               ))}
             </div>
@@ -94,7 +149,7 @@ export default function Index() {
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-foreground">Företagsanalys</h2>
-                    <p className="text-sm text-muted-foreground">Beskriv företaget för att få skräddarsydda AI-förslag</p>
+                    <p className="text-sm text-muted-foreground">Beskriv företaget för att få AI-genererade förslag</p>
                   </div>
                 </div>
                 
@@ -137,6 +192,7 @@ export default function Index() {
                 { id: 'suggestions' as const, label: 'AI-förslag', icon: Brain },
                 { id: 'plan' as const, label: 'Action Plan', icon: Target },
                 { id: 'roi' as const, label: 'ROI-analys', icon: FileSpreadsheet },
+                { id: 'agents' as const, label: 'AI-Agenter', icon: Bot },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -173,6 +229,12 @@ export default function Index() {
             {activeTab === 'roi' && (
               <div className="space-y-8">
                 <ROIDashboard roi={analysis.roiEstimate} />
+              </div>
+            )}
+
+            {activeTab === 'agents' && analysis.agentConversation && (
+              <div className="glass rounded-2xl p-6">
+                <AgentConversation messages={analysis.agentConversation} />
               </div>
             )}
 
