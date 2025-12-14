@@ -1,8 +1,8 @@
-import { FileSpreadsheet, FileText, Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileSpreadsheet, FileText, Download, Loader2, CheckCircle } from "lucide-react";
 import { AnalysisResult } from "@/types/analysis";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExportSectionProps {
   analysis: AnalysisResult;
@@ -10,20 +10,60 @@ interface ExportSectionProps {
 
 export function ExportSection({ analysis }: ExportSectionProps) {
   const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleExport = async (type: 'excel' | 'pdf') => {
     setIsExporting(type);
+    setExportSuccess(null);
     
-    // Simulate export - in production this would call a backend API
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast({
-      title: "Export klar",
-      description: `Din ${type === 'excel' ? 'Excel-fil' : 'PDF-rapport'} är redo för nedladdning.`,
-    });
-    
-    setIsExporting(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('export-analysis', {
+        body: { 
+          analysis: {
+            company: analysis.company,
+            suggestions: analysis.suggestions,
+            actionPlan: analysis.actionPlan,
+            roiEstimate: analysis.roiEstimate,
+            generatedAt: analysis.generatedAt.toISOString(),
+          },
+          format: type 
+        }
+      });
+
+      if (error) throw error;
+
+      // Create blob and download
+      const blob = new Blob([data], { 
+        type: type === 'excel' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CSA_AI_Analys_${analysis.company.companyName}.${type === 'excel' ? 'csv' : 'txt'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      setExportSuccess(type);
+      toast({
+        title: "Export klar!",
+        description: `Din ${type === 'excel' ? 'Excel-fil' : 'textrapport'} har laddats ner.`,
+      });
+      
+      // Reset success state after 3 seconds
+      setTimeout(() => setExportSuccess(null), 3000);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        variant: "destructive",
+        title: "Export misslyckades",
+        description: "Kunde inte generera filen. Försök igen.",
+      });
+    } finally {
+      setIsExporting(null);
+    }
   };
 
   return (
@@ -40,11 +80,13 @@ export function ExportSection({ analysis }: ExportSectionProps) {
             <FileSpreadsheet className="w-6 h-6 text-success" />
           </div>
           <div className="text-left flex-1">
-            <p className="font-medium text-foreground">Excel Action Plan</p>
-            <p className="text-sm text-muted-foreground">Gantt-schema, uppgifter & ROI</p>
+            <p className="font-medium text-foreground">Excel/CSV Export</p>
+            <p className="text-sm text-muted-foreground">Action plan, uppgifter & ROI</p>
           </div>
           {isExporting === 'excel' ? (
             <Loader2 className="w-5 h-5 text-success animate-spin" />
+          ) : exportSuccess === 'excel' ? (
+            <CheckCircle className="w-5 h-5 text-success" />
           ) : (
             <Download className="w-5 h-5 text-muted-foreground group-hover:text-success transition-colors" />
           )}
@@ -59,11 +101,13 @@ export function ExportSection({ analysis }: ExportSectionProps) {
             <FileText className="w-6 h-6 text-primary" />
           </div>
           <div className="text-left flex-1">
-            <p className="font-medium text-foreground">PDF Rapport</p>
+            <p className="font-medium text-foreground">Textrapport</p>
             <p className="text-sm text-muted-foreground">Fullständig presentation</p>
           </div>
           {isExporting === 'pdf' ? (
             <Loader2 className="w-5 h-5 text-primary animate-spin" />
+          ) : exportSuccess === 'pdf' ? (
+            <CheckCircle className="w-5 h-5 text-primary" />
           ) : (
             <Download className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
           )}
@@ -71,7 +115,7 @@ export function ExportSection({ analysis }: ExportSectionProps) {
       </div>
 
       <p className="text-xs text-muted-foreground mt-4 text-center">
-        * Export till Excel/PDF kräver backend-integration med Lovable Cloud
+        CSV-filen kan öppnas direkt i Excel. Textrapporten är formaterad för utskrift eller delning.
       </p>
     </div>
   );
