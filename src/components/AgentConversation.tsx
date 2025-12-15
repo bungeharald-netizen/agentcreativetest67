@@ -1,4 +1,4 @@
-import { Bot, User, Sparkles, Target, DollarSign, Search } from "lucide-react";
+import { Bot, User, Sparkles, Target, DollarSign, Search, Lightbulb, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AgentMessage {
@@ -30,6 +30,21 @@ const agentConfig: Record<string, { icon: any; color: string; bgColor: string }>
     icon: DollarSign,
     color: "text-amber-400",
     bgColor: "bg-amber-500/20",
+  },
+  "Company Profiler Agent": {
+    icon: Search,
+    color: "text-blue-400",
+    bgColor: "bg-blue-500/20",
+  },
+  "Divergent Brainstorm Agent": {
+    icon: Lightbulb,
+    color: "text-purple-400",
+    bgColor: "bg-purple-500/20",
+  },
+  "Synthesis & Critic Agent": {
+    icon: ShieldCheck,
+    color: "text-emerald-400",
+    bgColor: "bg-emerald-500/20",
   },
 };
 
@@ -72,6 +87,12 @@ export function AgentConversation({ messages }: AgentConversationProps) {
               const roi = parsed.roiEstimate;
               const roiPercent = ((roi.yearOneReturns - roi.totalInvestment) / roi.totalInvestment * 100).toFixed(0);
               summary = `Beräknad ROI: +${roiPercent}% år 1`;
+            } else if (message.role === "Company Profiler Agent" && parsed.company?.whatTheyLikelyDo) {
+              summary = parsed.company.whatTheyLikelyDo;
+            } else if (message.role === "Divergent Brainstorm Agent" && parsed.ideas) {
+              summary = `Brainstormade ${parsed.ideas.length} out-of-the-box idéer`;
+            } else if (message.role === "Synthesis & Critic Agent" && parsed.topIdeas) {
+              summary = `Valde ut och förbättrade ${parsed.topIdeas.length} idéer`;
             }
           } catch {
             summary = "Analys genomförd";

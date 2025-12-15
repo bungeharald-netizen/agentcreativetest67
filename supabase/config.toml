@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.export-analysis]
 verify_jwt = false
+
+[functions.brainstorm-outofbox]
+verify_jwt = false

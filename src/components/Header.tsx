@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, LayoutDashboard, FileText, FolderOpen, Zap } from "lucide-react";
+import { Menu, X, LayoutDashboard, FileText, FolderOpen, Zap, Mail, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -13,15 +13,14 @@ export function Header() {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/analyser", label: "Analyser", icon: FileText },
     { href: "/mallar", label: "Mallar", icon: FolderOpen },
+    { href: "/mail-svar", label: "Mail svar", icon: Mail },
+    { href: "/playbooks", label: "Playbooks", icon: BookOpen },
   ];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">C</span>
-          </div>
           <div>
             <h1 className="text-lg font-semibold text-foreground">CSA AI Advisor</h1>
             <p className="text-xs text-muted-foreground">Intelligent Implementation Planning</p>

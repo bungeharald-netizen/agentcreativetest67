@@ -1,14 +1,39 @@
-import { TrendingUp, TrendingDown, Clock, DollarSign, PiggyBank, Target, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, DollarSign, PiggyBank, Target, Info, Calculator, BarChart2, PieChart, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROIEstimate } from "@/types/analysis";
+import { useState } from "react";
+import { Button } from "./ui/button";
 
 interface ROIDashboardProps {
   roi: ROIEstimate;
 }
 
 export function ROIDashboard({ roi }: ROIDashboardProps) {
+  const [showDetails, setShowDetails] = useState(false);
+  
+  // Calculate ROI percentages
   const roiPercentage = ((roi.yearOneReturns - roi.totalInvestment) / roi.totalInvestment) * 100;
   const yearThreeROI = ((roi.yearThreeReturns - roi.totalInvestment) / roi.totalInvestment) * 100;
+  
+  // Calculate total cost savings and revenue increase
+  const totalCostSavings = roi.costSavings.reduce((sum, item) => sum + item.amount, 0);
+  const totalRevenueIncrease = roi.revenueIncrease.reduce((sum, item) => sum + item.amount, 0);
+  
+  // Calculate monthly savings and break-even in months
+  const monthlySavings = totalCostSavings / 12 + totalRevenueIncrease / 12;
+  const calculatedBreakEven = Math.ceil(roi.totalInvestment / monthlySavings);
+  
+  // Format numbers consistently
+  const formatNumber = (num: number) => num.toLocaleString('sv-SE');
+  
+  // Format percentage
+  const formatPercentage = (value: number) => {
+    return new Intl.NumberFormat('sv-SE', {
+      style: 'percent',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    }).format(value / 100);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('sv-SE', {
@@ -123,6 +148,97 @@ export function ROIDashboard({ roi }: ROIDashboardProps) {
         </div>
       </div>
 
+      {/* Toggle Details Button */}
+      <div className="flex justify-center mt-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowDetails(!showDetails)}
+          className="gap-2"
+        >
+          <Calculator className="w-4 h-4" />
+          {showDetails ? 'Dölj beräkningar' : 'Visa detaljerad beräkning'}
+        </Button>
+      </div>
+
+      {/* Detailed Calculation Section */}
+      {showDetails && (
+        <div className="glass rounded-2xl p-6 mt-6 space-y-6 animate-fade-in">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <BarChart2 className="w-5 h-5" />
+            Detaljerad ROI-beräkning
+          </h3>
+          
+          {/* Investment Breakdown */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Investeringskostnad
+            </h4>
+            <div className="bg-secondary/30 rounded-lg p-4">
+              <p className="text-sm">Total investering: <span className="font-mono">{formatCurrency(roi.totalInvestment)}</span></p>
+              <p className="text-xs text-muted-foreground mt-1">Denna siffra inkluderar alla initiala kostnader för implementering och utbildning.</p>
+            </div>
+          </div>
+          
+          {/* ROI Calculation */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
+              <Calculator className="w-4 h-4" />
+              Beräkning av återbetalningstid
+            </h4>
+            <div className="bg-secondary/30 rounded-lg p-4 space-y-2">
+              <p className="text-sm">Månatliga besparingar + intäktsökning:</p>
+              <p className="text-sm font-mono ml-4">
+                ({formatCurrency(totalCostSavings)} + {formatCurrency(totalRevenueIncrease)}) / 12 = {formatCurrency(monthlySavings)}/månad
+              </p>
+              <p className="text-sm mt-2">Beräknad återbetalningstid:</p>
+              <p className="text-sm font-mono ml-4">
+                {formatCurrency(roi.totalInvestment)} ÷ {formatCurrency(monthlySavings)} = {calculatedBreakEven} månader
+              </p>
+              {Math.abs(calculatedBreakEven - roi.breakEvenMonths) > 1 && (
+                <p className="text-xs text-warning flex items-center gap-1 mt-2">
+                  <AlertCircle className="w-3 h-3" />
+                  Notera: Den beräknade återbetalningstiden skiljer sig från den uppskattade. Detta kan bero på avrundningar eller ytterligare faktorer.
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* ROI Details */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
+              <PieChart className="w-4 h-4" />
+              ROI-beräkning
+            </h4>
+            <div className="bg-secondary/30 rounded-lg p-4 space-y-2">
+              <p className="text-sm">År 1 ROI:</p>
+              <p className="text-sm font-mono ml-4">
+                ({formatCurrency(roi.yearOneReturns)} - {formatCurrency(roi.totalInvestment)}) ÷ {formatCurrency(roi.totalInvestment)} × 100 = {formatPercentage(roiPercentage)}
+              </p>
+              <p className="text-sm mt-2">År 3 ROI:</p>
+              <p className="text-sm font-mono ml-4">
+                ({formatCurrency(roi.yearThreeReturns)} - {formatCurrency(roi.totalInvestment)}) ÷ {formatCurrency(roi.totalInvestment)} × 100 = {formatPercentage(yearThreeROI)}
+              </p>
+            </div>
+          </div>
+          
+          {/* Data Quality Notice */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
+            <div className="flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-blue-800 dark:text-blue-200">Viktig information</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Dessa beräkningar baseras på de uppgifter som angetts och branschgenomsnitt. 
+                  Faktisk avkastning kan variera baserat på specifika förhållanden och implementeringskvalitet.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confidence & Assumptions */}
       <div className="glass rounded-2xl p-6 animate-slide-up" style={{ animationDelay: "600ms" }}>
         <div className="flex items-start gap-3">
@@ -133,7 +249,7 @@ export function ROIDashboard({ roi }: ROIDashboardProps) {
               <p className="text-sm text-muted-foreground">{confidence.description}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground mb-2">Antaganden:</p>
+              <p className="text-sm font-medium text-foreground mb-2">Antaganden och förbehåll:</p>
               <ul className="space-y-1">
                 {roi.assumptions.map((assumption, i) => (
                   <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">

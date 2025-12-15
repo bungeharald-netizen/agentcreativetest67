@@ -160,6 +160,22 @@ export default function Mallar() {
               </Button>
             </Link>
           </div>
+
+          <div className="mt-6 glass rounded-2xl p-8 text-center animate-slide-up">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              Brainstorma Out of the box AI ideer
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Skriv bara företagsnamn. Flera AI-agenter brainstormar tillsammans och tar fram ovanliga,
+              kreativa idéer som kan testas snabbt.
+            </p>
+            <Link to="/brainstorm">
+              <Button variant="outline" size="lg">
+                <Sparkles className="w-5 h-5 mr-2" />
+                Brainstorma nu
+              </Button>
+            </Link>
+          </div>
         </div>
       </main>
 

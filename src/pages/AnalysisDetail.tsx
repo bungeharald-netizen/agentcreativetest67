@@ -140,6 +140,8 @@ export default function AnalysisDetail() {
                     key={suggestion.id}
                     suggestion={suggestion}
                     index={index}
+                    companyName={analysisResult.company.companyName}
+                    industry={analysisResult.company.industry}
                   />
                 ))}
               </div>

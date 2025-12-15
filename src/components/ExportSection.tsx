@@ -1,4 +1,4 @@
-import { FileSpreadsheet, FileText, Download, Loader2, CheckCircle, Presentation } from "lucide-react";
+import { FileSpreadsheet, FileText, Download, Loader2, CheckCircle, Presentation, File, FileJson } from "lucide-react";
 import { AnalysisResult } from "@/types/analysis";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +21,7 @@ export function ExportSection({ analysis }: ExportSectionProps) {
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleExport = async (type: 'excel' | 'pdf' | 'pitch') => {
+  const handleExport = async (type: 'excel' | 'pdf' | 'pitch' | 'google-slides' | 'keynote') => {
     setIsExporting(type);
     setExportSuccess(null);
     
@@ -51,10 +51,21 @@ export function ExportSection({ analysis }: ExportSectionProps) {
       const a = document.createElement('a');
       a.href = url;
       
-      const extension = type === 'excel' ? 'csv' : 'txt';
-      const filename = type === 'pitch' 
-        ? `CSA_Pitch_Deck_${analysis.company.companyName}.txt`
-        : `CSA_AI_Analys_${analysis.company.companyName}.${extension}`;
+      let extension = 'txt';
+      let filename = `CSA_AI_Analys_${analysis.company.companyName}.txt`;
+      
+      if (type === 'excel') {
+        extension = 'csv';
+        filename = `CSA_AI_Analys_${analysis.company.companyName}.csv`;
+      } else if (type === 'pitch') {
+        filename = `CSA_Pitch_Deck_${analysis.company.companyName}.txt`;
+      } else if (type === 'google-slides') {
+        extension = 'json';
+        filename = `CSA_Presentation_${analysis.company.companyName}.slides.json`;
+      } else if (type === 'keynote') {
+        extension = 'key';
+        filename = `CSA_Presentation_${analysis.company.companyName}.key`;
+      }
       
       a.download = filename;
       document.body.appendChild(a);
@@ -64,7 +75,14 @@ export function ExportSection({ analysis }: ExportSectionProps) {
       
       setExportSuccess(type);
       
-      const typeLabel = type === 'excel' ? 'Excel-fil' : type === 'pitch' ? 'Pitch Deck' : 'textrapport';
+      const typeLabels = {
+        'excel': 'Excel-fil',
+        'pdf': 'Textrapport',
+        'pitch': 'Pitch Deck',
+        'google-slides': 'Google Slides',
+        'keynote': 'Apple Keynote'
+      };
+      const typeLabel = typeLabels[type] || 'fil';
       toast({
         title: "Export klar!",
         description: `Din ${typeLabel} har laddats ner.`,
@@ -130,17 +148,17 @@ export function ExportSection({ analysis }: ExportSectionProps) {
           )}
         </button>
 
-        <button
+<button
           onClick={() => handleExport('pitch')}
           disabled={isExporting !== null}
           className="flex items-center gap-4 p-4 bg-secondary/30 rounded-xl border border-border/50 hover:border-warning/50 hover:bg-warning/5 transition-all group"
         >
           <div className="w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center group-hover:bg-warning/30 transition-colors">
-            <Presentation className="w-6 h-6 text-warning" />
+            <FileText className="w-6 h-6 text-warning" />
           </div>
           <div className="text-left flex-1">
-            <p className="font-medium text-foreground">Pitch Deck</p>
-            <p className="text-sm text-muted-foreground">Säljpresentation</p>
+            <p className="font-medium text-foreground">Textbaserad Pitch</p>
+            <p className="text-sm text-muted-foreground">Enkel textfil</p>
           </div>
           {isExporting === 'pitch' ? (
             <Loader2 className="w-5 h-5 text-warning animate-spin" />
@@ -150,10 +168,52 @@ export function ExportSection({ analysis }: ExportSectionProps) {
             <Download className="w-5 h-5 text-muted-foreground group-hover:text-warning transition-colors" />
           )}
         </button>
+
+        <button
+          onClick={() => handleExport('google-slides')}
+          disabled={isExporting !== null}
+          className="flex items-center gap-4 p-4 bg-secondary/30 rounded-xl border border-border/50 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
+        >
+          <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+            <Presentation className="w-6 h-6 text-blue-500" />
+          </div>
+          <div className="text-left flex-1">
+            <p className="font-medium text-foreground">Google Slides</p>
+            <p className="text-sm text-muted-foreground">Online-presentation</p>
+          </div>
+          {isExporting === 'google-slides' ? (
+            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+          ) : exportSuccess === 'google-slides' ? (
+            <CheckCircle className="w-5 h-5 text-blue-500" />
+          ) : (
+            <Download className="w-5 h-5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+          )}
+        </button>
+
+        <button
+          onClick={() => handleExport('keynote')}
+          disabled={isExporting !== null}
+          className="flex items-center gap-4 p-4 bg-secondary/30 rounded-xl border border-border/50 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group"
+        >
+          <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+            <File className="w-6 h-6 text-purple-500" />
+          </div>
+          <div className="text-left flex-1">
+            <p className="font-medium text-foreground">Apple Keynote</p>
+            <p className="text-sm text-muted-foreground">Mac-presentation</p>
+          </div>
+          {isExporting === 'keynote' ? (
+            <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
+          ) : exportSuccess === 'keynote' ? (
+            <CheckCircle className="w-5 h-5 text-purple-500" />
+          ) : (
+            <Download className="w-5 h-5 text-muted-foreground group-hover:text-purple-500 transition-colors" />
+          )}
+        </button>
       </div>
 
       <p className="text-xs text-muted-foreground mt-4 text-center">
-        CSV öppnas i Excel • Textrapport för utskrift • Pitch Deck för kundpresentation
+        CSV för Excel • Text för utskrift • Presentationer för Google Slides eller Apple Keynote
       </p>
     </div>
   );

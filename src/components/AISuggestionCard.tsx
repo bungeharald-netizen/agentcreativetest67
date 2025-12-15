@@ -1,11 +1,16 @@
+import { useState } from "react";
 import { Sparkles, Bot, Zap, BarChart3, TrendingUp, Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AISuggestion } from "@/types/analysis";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AISuggestionBuildGuideDialog } from "@/components/AISuggestionBuildGuideDialog";
 
 interface AISuggestionCardProps {
   suggestion: AISuggestion;
   index: number;
+  companyName?: string;
+  industry?: string;
 }
 
 const categoryConfig: Record<string, { icon: typeof Sparkles; label: string; color: string }> = {
@@ -53,7 +58,9 @@ const complexityConfig: Record<string, { label: string; color: string }> = {
 
 const defaultComplexity = { label: "Medium", color: "text-warning" };
 
-export function AISuggestionCard({ suggestion, index }: AISuggestionCardProps) {
+export function AISuggestionCard({ suggestion, index, companyName, industry }: AISuggestionCardProps) {
+  const [isBuildGuideOpen, setIsBuildGuideOpen] = useState(false);
+
   const category = categoryConfig[suggestion.category] || defaultCategory;
   const CategoryIcon = category.icon;
   const priority = priorityConfig[suggestion.priority] || defaultPriority;
@@ -141,6 +148,20 @@ export function AISuggestionCard({ suggestion, index }: AISuggestionCardProps) {
           </div>
         </div>
       </div>
+
+      <div className="mt-5">
+        <Button variant="secondary" className="w-full" onClick={() => setIsBuildGuideOpen(true)}>
+          Visa hur man kan bygga detta
+        </Button>
+      </div>
+
+      <AISuggestionBuildGuideDialog
+        open={isBuildGuideOpen}
+        onOpenChange={setIsBuildGuideOpen}
+        suggestion={suggestion}
+        companyName={companyName}
+        industry={industry}
+      />
     </div>
   );
 }

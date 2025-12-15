@@ -227,7 +227,13 @@ export default function Index() {
               <div className="space-y-8">
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {analysis.suggestions.map((suggestion, index) => (
-                    <AISuggestionCard key={suggestion.id} suggestion={suggestion} index={index} />
+                    <AISuggestionCard
+                      key={suggestion.id}
+                      suggestion={suggestion}
+                      index={index}
+                      companyName={analysis.company.companyName}
+                      industry={analysis.company.industry}
+                    />
                   ))}
                 </div>
               </div>
