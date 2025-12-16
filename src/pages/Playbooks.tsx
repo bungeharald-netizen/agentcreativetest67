@@ -113,7 +113,61 @@ function templateBenefitsTracking() {
     "## KPI:er (exempel)\n- Tidsbesparing per ärende\n- First Contact Resolution\n- Genomsnittlig handläggningstid\n- Kundnöjdhet\n- Adoption: DAU/WAU\n\n",
     "## Mätplan\n- Baseline: 2–4 veckor historik\n- Experiment: 1–2 veckor\n- Uppföljning: veckovis första 8 veckor\n\n",
     "## Datakällor\n- CRM/Helpdesk\n- Telemetri/loggar\n- Enkät/CSAT\n\n",
-    "## Rapportering\n- Weekly: sponsor + operations\n- Monthly: ledning (ROI, risker, nästa steg)\n",
+    "## Rapportering\n- Weekly: sponsor + operations\n- Monthly: ledning (ROI, risker, nästa steg)\n\n",
+  ].join("\n");
+}
+
+function templateClientTrainingGuide() {
+  return [
+    "# Kundutbildning: Använd AI i vardagen\n",
+    "Syfte: hjälpa er använda AI-systemet säkert, effektivt och med mätbar nytta.\n",
+    "\n## 1) Så använder ni AI-systemet (steg för steg)\n" +
+      "1. Välj uppgift: sammanfatta, skriva utkast, skapa checklista, förbättra text.\n" +
+      "2. Skriv målet: vad ska bli bättre (tid, kvalitet, kundupplevelse)?\n" +
+      "3. Ge underlag: relevanta fakta, policy, exempel, målgrupp, format.\n" +
+      "4. Be om: (a) utkast, (b) antaganden, (c) öppna frågor, (d) risker.\n" +
+      "5. Granska och korrigera: ansvarig person godkänner innan det används externt.\n" +
+      "6. Spara i rätt system (CRM/SharePoint/Helpdesk) och notera att det är AI-assisterat.\n",
+    "\n## 2) Begränsningar (viktigt)\n" +
+      "- AI kan ha fel eller missförstå kontext. Allt måste granskas.\n" +
+      "- AI ersätter inte policy, juridik eller affärsbeslut.\n" +
+      "- AI gissar om underlag saknas. Om du inte vet, be AI:n lista vad som saknas.\n",
+    "\n## 3) Ansvar och roller\n" +
+      "- Medarbetare (du): skriver prompt, ger underlag, granskar output.\n" +
+      "- Process owner: äger flödet och godkänner att AI används i processen.\n" +
+      "- Data owner: bestämmer vilka data som får användas och var de får lagras.\n" +
+      "- Security/Legal (om tillämpligt): godkänner regler för persondata/sekretess.\n" +
+      "Saknas just nu (fyll i): [namn process owner], [namn data owner], [policy för persondata].\n",
+    "\n## 4) Så mäter vi framgång\n" +
+      "Vi mäter affärseffekt, inte " +
+      "'antal AI-användningar'. För varje use-case ska vi ha:\n" +
+      "- Baseline: nuläge (t.ex. minuter/ärende, felgrad, CSAT)\n" +
+      "- Mål: vad som ska förbättras och med hur mycket\n" +
+      "- Mätfönster: när vi mäter (t.ex. 2 veckor pilot)\n" +
+      "- Ägare: vem ansvarar för utfallet\n",
+    "\n## 5) AI i dagliga arbetsvanor (säkra, beprövade exempel)\n" +
+      "A) Kommunikation\n" +
+      "- Skriv bättre e-postutkast: kort, tydligt, nästa steg\n" +
+      "- Sammanfatta möten till beslut + actions\n" +
+      "\nB) Operativt arbete\n" +
+      "- Skapa checklistor för återkommande processer\n" +
+      "- Standardisera kundsvar utifrån godkända mallar\n" +
+      "\nC) Analys\n" +
+      "- Tolka tabeller: 3 hypoteser + vad som behövs för att verifiera\n" +
+      "- Skapa experimentplan: test, mätning, stop-kriterium\n" +
+      "\nD) Lärande\n" +
+      "- Be om förklaring som för en ny person + konkreta exempel från er domän\n",
+    "\n## 6) Säkerhet (minimumregler)\n" +
+      "- Dela inte persondata, hemliga avtal eller känsliga kunduppgifter om ni inte har godkänt flöde och policy.\n" +
+      "- Märk extern text som: 'AI-assisterat utkast – granskat och godkänt av [namn]'.\n" +
+      "- Vid osäkerhet: eskalera till process owner/data owner.\n",
+    "\n## 7) Prompt-mallar (kopiera och fyll i)\n" +
+      "1) Sammanfattning\n" +
+      "Sammanfatta texten i 5 bullets. Lägg sist: öppna frågor, risker, nästa steg. Text: [klistra in]\n" +
+      "\n2) E-postutkast\n" +
+      "Skriv ett mail till [målgrupp] om [ämne]. Ton: professionell och kort. Inkludera 3 nästa steg. Underlag: [klistra in]\n" +
+      "\n3) Checklista\n" +
+      "Skapa en checklista för processen [process]. Mål: [mål]. Begränsningar: [begränsningar].\n",
   ].join("\n");
 }
 
@@ -184,6 +238,7 @@ export default function Playbooks() {
               <TabsTrigger value="governance">Governance</TabsTrigger>
               <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
               <TabsTrigger value="benefits">Benefits</TabsTrigger>
+              <TabsTrigger value="training">Utbildning</TabsTrigger>
             </TabsList>
 
             <TabsContent value="readiness">
@@ -420,6 +475,78 @@ export default function Playbooks() {
                     >
                       <Copy className="w-4 h-4" />
                       Kopiera benefits plan
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="training">
+              <div className="grid lg:grid-cols-3 gap-6">
+                <Card className="glass rounded-2xl lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Kundutbildning: AI i vardagen</CardTitle>
+                    <CardDescription>
+                      Kort guide för kundens team: användning, begränsningar, ansvar och hur framgång mäts.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="border rounded-lg p-4">
+                      <div className="font-medium text-foreground mb-2">Hur man använder AI-systemet</div>
+                      <ul className="space-y-2">
+                        {[
+                          "Välj uppgift (sammanfatta, utkast, checklista)",
+                          "Ge kontext: mål, målgrupp, format",
+                          "Ge underlag och be AI:n lista antaganden + öppna frågor",
+                          "Granska och korrigera innan det används externt",
+                        ].map((x) => (
+                          <li key={x} className="text-sm text-muted-foreground">- {x}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="border rounded-lg p-4">
+                      <div className="font-medium text-foreground mb-2">Begränsningar & ansvar</div>
+                      <ul className="space-y-2">
+                        {[
+                          "AI kan ha fel: ansvarig person måste granska",
+                          "AI får inte fatta kund/ekonomi/juridiska beslut utan godkännande",
+                          "Om policy för persondata saknas: dela inte PII/sekretessmaterial",
+                        ].map((x) => (
+                          <li key={x} className="text-sm text-muted-foreground">- {x}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="border rounded-lg p-4">
+                      <div className="font-medium text-foreground mb-2">Hur framgång mäts</div>
+                      <ul className="space-y-2">
+                        {[
+                          "Baseline → mål → mätfönster",
+                          "Tid sparad per ärende eller per process",
+                          "Kvalitet: färre fel/omtag, högre kundnöjdhet",
+                          "Adoption: hur många i målgruppen använder flödet varje vecka",
+                        ].map((x) => (
+                          <li key={x} className="text-sm text-muted-foreground">- {x}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="glass rounded-2xl">
+                  <CardHeader>
+                    <CardTitle>Export</CardTitle>
+                    <CardDescription>Kopiera hela guiden och skicka till kunden.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => copyToClipboard(templateClientTrainingGuide(), "Kundutbildning")}
+                    >
+                      <Copy className="w-4 h-4" />
+                      Kopiera kundutbildning
                     </Button>
                   </CardContent>
                 </Card>

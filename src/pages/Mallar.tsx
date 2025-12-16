@@ -169,7 +169,7 @@ export default function Mallar() {
               Skriv bara företagsnamn. Flera AI-agenter brainstormar tillsammans och tar fram ovanliga,
               kreativa idéer som kan testas snabbt.
             </p>
-            <Link to="/brainstorm">
+            <Link to="https://nichesattattbrainstormaaiideermedcasionoroule.lovable.app" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="lg">
                 <Sparkles className="w-5 h-5 mr-2" />
                 Brainstorma nu
